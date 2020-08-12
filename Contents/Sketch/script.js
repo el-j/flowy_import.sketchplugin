@@ -19,6 +19,8 @@ const allProjects = Object.keys(allData)
 let document = sketch.getSelectedDocument()
 // console.log(document);
 let page = document.selectedPage
+console.log(allData);
+if (!allData.error) {
 
 
 // the user has to choose the project that is loaded
@@ -54,26 +56,26 @@ UI.getInputFromUser(
   }
 )
 
+}
+else {
+    UI.alert('FLOWY ERROR:',`${allData.message}
+${allData.reason}`)
+}
+
 
 function updateProject(project){
   let thisProject = networkRequest([`${api}/loadProject/:${project}`])
   let thisProjectNodes = Object.keys(thisProject.projectJson.nodes)
   let thisProjectLinks = Object.keys(thisProject.projectJson.links)
-
   let allArtBoards = {}
   thisProjectNodes.map((node) => {
-
-    let currentArtboard = sketch.find(`[name="${thisProject.projectJson.nodes[node].name}"]`)
-    // console.log(currentArtboard);
+  let currentArtboard = sketch.find(`[name="${thisProject.projectJson.nodes[node].name}"]`)
 
   })
-
-
 }
 
+// we load the project from the backend
 function loadProject(project){
-
-  // we load the project from the backend
   let thisProject = networkRequest([`${api}/loadProject/:${project}`])
   let thisProjectNodes = Object.keys(thisProject.projectJson.nodes)
   let thisProjectLinks = Object.keys(thisProject.projectJson.links)
@@ -242,7 +244,7 @@ function networkRequest(args) {
     log(args);
     log("responseString");
     log(responseString);
-    throw "Error communicating with server"
+    return {error:'ERROR',message:"Your Projects cannot be loaded. Maybe flowy Api is down?",reason:responseData}
   }
   return parsed;
 }
