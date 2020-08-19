@@ -2,23 +2,31 @@
   "author" : "",
   "commands" : [
     {
-      "script" : "script.js",
-      "name" : "flowy_import",
+      "script" : "flowy_import.js",
+      "name" : "flowy > import",
       "handlers" : {
         "run" : "onRun"
       },
       "identifier" : "com.bohemiancoding.sketch.runscriptidentifier"
+    },{
+      "script" : "flowy_export.js",
+      "name" : "export > flowy",
+      "handlers" : {
+        "run" : "onRun"
+      },
+      "identifier" : "com.bohemiancoding.sketch.runscriptidentifier2"
     }
   ],
   "menu" : {
-    "title" : "flowy_import",
+    "title" : "flowy",
     "items" : [
-      "com.bohemiancoding.sketch.runscriptidentifier"
+      "com.bohemiancoding.sketch.runscriptidentifier",
+      "com.bohemiancoding.sketch.runscriptidentifier2"
     ]
   },
   "identifier" : "com.example.sketch.485c8195-525e-408d-88c3-e7e9e47ee9b1",
   "version" : "1.0",
   "description" : "",
   "authorEmail" : "",
-  "name" : "flowy_import"
+  "name" : "flowy"
 }
