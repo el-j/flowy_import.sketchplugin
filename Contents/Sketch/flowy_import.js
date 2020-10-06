@@ -8,6 +8,7 @@ const Artboard = sketch.Artboard
 const ShapePath = sketch.ShapePath
 const Text = sketch.Text
 const Image = sketch.Image
+const Slice = sketch.Slice
 const Rectangle = sketch.Rectangle
 const api = 'http://localhost:9023/api'
 const projectsUrl = 'http://localhost:9023'
@@ -94,6 +95,8 @@ function loadProject(project){
       width = thisProject.projectJson.nodes[node].size.width
       height = thisProject.projectJson.nodes[node].size.height
     }
+    let picWidth = thisProject.projectJson.nodes[node].picSize.width
+    let picHeight = thisProject.projectJson.nodes[node].picSize.height
     // console.log(thisProject.projectJson.nodes[node])
     let x = thisProject.projectJson.nodes[node].position.x
     let y = thisProject.projectJson.nodes[node].position.y
@@ -107,12 +110,50 @@ function loadProject(project){
       frame: { x: x, y: y, width: width, height: height },
       name: artBoardName
     })
+    
+    let exportSlice = new Slice({
+      parent: allArtBoards[node],
+      frame:  { x: 0, y: 0, width: width, height: picHeight },
+      name: `${thisProject.projectJson.nodes[node].picture}`
+    })
+    let imagePath = `${projectsUrl}/projects/${thisProject.projectJson.nodes[node].path}`
+    if (imagePath === 'http://localhost:9023/projects/no_image.png') {
+      imagePath = "http://localhost:9023/no_image.png"
+    }
 
+    let imageurl_nsurl = NSURL.alloc().initWithString(imagePath);
+    let nsimage = NSImage.alloc().initByReferencingURL(imageurl_nsurl);
+    // console.log(imagePath);
+    let mySquare = new ShapePath({
+      name: thisProject.projectJson.nodes[node].picture,
+      parent: allArtBoards[node],
+      frame: { x: 0, y: 0, width: picWidth, height: picHeight},
+      style: {
+      fills: [{
+        fill: 'Pattern',
+        pattern: {
+          patternType: Style.PatternFillType.Fit,
+          image: nsimage
+        }
+      }]
+    }
+    })
+
+    let infoBgSquare = new ShapePath({
+      name: `${thisProject.projectJson.nodes[node].picture}_bg`,
+      parent: allArtBoards[node],
+      frame: { x: 0, y: picHeight, width: width, height: height-picHeight},
+      style: {
+      fills: [{
+        fill: '#FFFFFF',
+      }]
+    }
+    })
     let nodeNameText = new Text({
       parent: allArtBoards[node],
       name: `${nodeName}`,
       text: `${nodeName}`,
-      frame: { x: 20, y: perectage(85,height),width: width, height: 20},
+      frame: { x: 20, y: picHeight+10,width: width, height: perectage(20,height-picHeight)},
         style: {
           textColor: '#111',
           fontSize: 20,
@@ -125,7 +166,7 @@ function loadProject(project){
       parent: allArtBoards[node],
       name: `${thisProject.projectJson.nodes[node].text}`,
       text: `${thisProject.projectJson.nodes[node].text}`,
-      frame: { x: 20, y: perectage(85,height)+perectage(120,20), width: width, height: 10 },
+      frame: { x: 20, y: picHeight+40, width: width, height: perectage(80,height-picHeight) },
         style: {
           textColor: '#333',
           lineHeight: null,
@@ -134,31 +175,12 @@ function loadProject(project){
         },
     })
 
+
+
     nodeNameText.style.borders = [{enabled:false}]
+    mySquare.style.borders = [{enabled:false}]
+
     nodeDescriptionText.style.borders = [{enabled:false}]
-
-    let imagePath = `${projectsUrl}/projects/${thisProject.projectJson.nodes[node].path}`
-    if (imagePath === 'http://localhost:9023/projects/no_image.png') {
-      imagePath = "http://localhost:9023/no_image.png"
-    }
-
-    let imageurl_nsurl = NSURL.alloc().initWithString(imagePath);
-    let nsimage = NSImage.alloc().initByReferencingURL(imageurl_nsurl);
-    // console.log(imagePath);
-    let mySquare = new ShapePath({
-      name: thisProject.projectJson.nodes[node].picture,
-      parent: allArtBoards[node],
-      frame: { x: 0, y: 0, width: width, height: perectage(80,height) },
-      style: {
-      fills: [{
-        fill: 'Pattern',
-        pattern: {
-          patternType: Style.PatternFillType.Fit,
-          image: nsimage
-        }
-      }]
-    }
-    })
   //   var imageLayer = new Image({
   //     name:thisProject.projectJson.nodes[node].path,
   //         parent: allArtBoards[node],

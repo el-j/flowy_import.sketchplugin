@@ -6,6 +6,7 @@ var onRun = function(context) {
   const Artboard = sketch.Artboard
   const ShapePath = sketch.ShapePath
   const Text = sketch.Text
+  const Slice = sketch.Slice
   const Image = sketch.Image
   const Rectangle = sketch.Rectangle
   const api = 'http://localhost:9023/api'
@@ -59,7 +60,15 @@ var onRun = function(context) {
           // most likely the user canceled the input
           return
         } else {
-          createProject(value)
+          console.log("from user input dialog",allProjects,allProjects.indexOf(value),value);
+          if (allProjects.indexOf(value)>=0) {
+            console.log('update',value)
+              updateProject(value)
+          }
+          else {
+              createProject(value)
+          }
+
         }
       },
 
@@ -70,12 +79,22 @@ var onRun = function(context) {
   ${allData.reason}`)
   }
 
+  function shrinkSlice_by(slice,value) {
+    let frame = slice.frame
+    frame.x = frame.x
+    frame.y = frame.y
+    frame.width = frame.width
+    frame.height = value
+    slice.frame = frame
+    return slice
+  }
 
   // we create a new project at the backend
   function createProject(project) {
     // let thisProjectData = emptyProject(project)
     let selectedLayers = document.selectedLayers
     let selectedCount = selectedLayers.length
+    console.log(project);
     if (selectedCount != 0) {
       networkRequest([`${api}/createProject/:${project}`])
       const optionsSave = {
@@ -85,12 +104,15 @@ var onRun = function(context) {
 
       let myRequests = []
       selectedLayers.forEach(async function(layer, i) {
-        console.log((i + 1) + '. ' + layer.name)
+        console.log((i + 1) + '. ' + layer.name,layer.frame)
         let myOutputLayer = layer
         let outFileName = myOutputLayer.name.replaceAll(' / ','_')
         myOutputLayer.name = outFileName
-        console.log(outFileName);
-        dom.export(myOutputLayer, optionsSave)
+        let height = layer.frame.height
+        let mySlice = sketch.find('Slice',layer)
+        console.log(outFileName,height,mySlice.frame);
+        myoutput = shrinkSlice_by(myOutputLayer,perectage(20,height))
+        dom.export(myoutput, optionsSave)
         // uploadFile(project,outFileName)
 
         if (i === selectedCount-1) {
@@ -105,18 +127,53 @@ var onRun = function(context) {
     } else {
       console.log('nothing to export');
     }
-  })
+  }
+
 
 
 function updateProject(project) {
   UI.alert('Update Project:', `${project}`)
-  let thisProject = networkRequest([`${api}/loadProject/:${project}`])
-  let thisProjectNodes = Object.keys(thisProject.projectJson.nodes)
-  let thisProjectLinks = Object.keys(thisProject.projectJson.links)
-  let allArtBoards = {}
-  thisProjectNodes.map((node) => {
-    let currentArtboard = sketch.find(`[name="${thisProject.projectJson.nodes[node].name}"]`)
-  })
+
+  // thisProjectNodes.map((node) => {
+  //   let currentArtboard = sketch.find(`[name="${thisProject.projectJson.nodes[node].name}"]`)
+  // })
+
+
+  let selectedLayers = document.selectedLayers
+  let selectedCount = selectedLayers.length
+  if (selectedCount != 0) {
+    const optionsSave = {
+      formats: 'png',
+      output: '~/tempFlowyUpload/'
+    }
+      console.log("we have selected layers", selectedLayers);
+
+    selectedLayers.forEach(async function(layer, i) {
+      let myOutputLayer = layer
+      let outFileName = myOutputLayer.name.replaceAll(' / ','_')
+      myOutputLayer.name = outFileName
+      let height = layer.frame.height
+      let mySlice = sketch.find('Slice',layer)
+      // let slices = sketch.find('no_image.png',layer)
+      console.log("mySLIOCE",mySlice,mySlice[0].frame);
+      let mySliceHeight = mySlice[0].frame.height
+      console.log("mySLIOCE",mySliceHeight);
+      myoutput = shrinkSlice_by(myOutputLayer,mySliceHeight)
+      dom.export(myoutput, optionsSave)
+      // uploadFile(project,outFileName)
+
+      if (i === selectedCount-1) {
+        console.log(i,selectedCount);
+        UI.alert('Updated Project:', `${project}`)
+      }
+      console.log(i);
+      let request = ["-F",`projectName=${project}`,"-F",`data=@/Users/fabianalthaus/tempFlowyUpload/${outFileName}.png`,`${api}/uploadProjectData/:${project}`];
+      networkRequest(request)
+    })
+
+  } else {
+    console.log('nothing to export');
+  }
 }
 
 
@@ -213,5 +270,11 @@ if (!Object.keys) {
       return result;
     };
   }());
+}
+
+function perectage(input,max){
+  let temp = (max/100)*input
+  console.log(temp)
+  return temp
 }
 };
