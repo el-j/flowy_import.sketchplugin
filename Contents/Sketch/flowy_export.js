@@ -106,13 +106,15 @@ var onRun = function(context) {
       selectedLayers.forEach(async function(layer, i) {
         console.log((i + 1) + '. ' + layer.name,layer.frame)
         let myOutputLayer = layer
+        let height = layer.frame.height
         let outFileName = myOutputLayer.name.replaceAll(' / ','_')
         myOutputLayer.name = outFileName
-        let height = layer.frame.height
         let mySlice = sketch.find('Slice',layer)
         console.log(outFileName,height,mySlice.frame);
         myoutput = shrinkSlice_by(myOutputLayer,perectage(20,height))
         dom.export(myoutput, optionsSave)
+
+        layer.frame.height = height
         // uploadFile(project,outFileName)
 
         if (i === selectedCount-1) {
@@ -150,9 +152,9 @@ function updateProject(project) {
 
     selectedLayers.forEach(async function(layer, i) {
       let myOutputLayer = layer
+      let height = layer.frame.height
       let outFileName = myOutputLayer.name.replaceAll(' / ','_')
       myOutputLayer.name = outFileName
-      let height = layer.frame.height
       let mySlice = sketch.find('Slice',layer)
       // let slices = sketch.find('no_image.png',layer)
       console.log("mySLIOCE",mySlice,mySlice[0].frame);
@@ -161,7 +163,8 @@ function updateProject(project) {
       myoutput = shrinkSlice_by(myOutputLayer,mySliceHeight)
       dom.export(myoutput, optionsSave)
       // uploadFile(project,outFileName)
-
+      // dom.setHeight(layer, )
+      layer.frame.height = height
       if (i === selectedCount-1) {
         console.log(i,selectedCount);
         UI.alert('Updated Project:', `${project}`)
