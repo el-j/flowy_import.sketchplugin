@@ -10,6 +10,7 @@ const Image = sketch.Image
 const Slice = sketch.Slice
 const Rectangle = sketch.Rectangle
 const Group = sketch.Group
+const HotSpot = sketch.HotSpot
 const api = 'http://localhost:9023/api'
 const projectsUrl = 'http://localhost:9023'
 Text.Alignment.left
@@ -41,17 +42,39 @@ UI.getInputFromUser(
         if (isIdentifier.length > 0) {
           // console.log("show me the result",isIdentifier,sketch.find(`Shape, [name="flowy-identifier:${value}"]`));
           UI.message(`Update the Project: ${value}`)
-          updateProject(value)
+          updateProject(value,cb => {
+            if (cb ="done") {
+              let identiferText = new ShapePath({
+                parent: page,
+                name: `flowy-identifier:${value}`,
+                frame: { x: 10000, y: 10000, width: 1, height: 1 },
+                style: { fills: ['#35E6C9']}
+
+              })
+            }
+              else {
+                UI.message('Flowy Error: Canceled Rendering')
+            }
+          })
         }
         else {
-          let identiferText = new ShapePath({
-            parent: page,
-            name: `flowy-identifier:${value}`,
-            frame: { x: 10000, y: 10000, width: 1, height: 1 },
-            style: { fills: ['#35E6C9']}
+
+          loadProject(value, cb => {
+            if (cb ="done") {
+              let identiferText = new ShapePath({
+                parent: page,
+                name: `flowy-identifier:${value}`,
+                frame: { x: 10000, y: 10000, width: 1, height: 1 },
+                style: { fills: ['#35E6C9']}
+
+              })
+            }
+              else {
+                UI.message('Flowy Error: Canceled Rendering')
+            }
 
           })
-          loadProject(value)
+
         }
     }
   }
@@ -64,129 +87,314 @@ ${allData.reason}`)
 }
 
 
-function updateProject(project){
+function cleanOld(thisNodeName){
+  let currentInfoPanelGroup = sketch.find(`[name="${thisNodeName}_InfoPanel"]`)
+  let currentOutputGroup = sketch.find(`[name="outputs"]`)
+  let currentInputGroup = sketch.find(`[name="inputs"]`)
+
+
+
+  if (currentInputGroup.length >= 1) {
+    currentInputGroup.map(input => {
+      if (input.parent.name === thisNodeName) {
+        input.remove()
+      }
+    })
+    }
+    if (currentOutputGroup.length >= 1) {
+      currentOutputGroup.map(input => {
+        if (input.parent.name === thisNodeName) {
+          input.remove()
+        }
+      })
+    }
+  if (currentInfoPanelGroup.length >= 1) {
+    currentInfoPanelGroup[0].remove()
+  }
+}
+
+
+function updateProject(project,cb){
+  let currentIdentifier = sketch.find(`[name="flowy-identifier:${project}"]`)
+      currentIdentifier[0].remove()
+
   let thisProject = networkRequest([`${api}/loadProject/:${project}`])
+
   let thisProjectNodes = Object.keys(thisProject.projectJson.nodes)
   let thisProjectLinks = Object.keys(thisProject.projectJson.links)
   let selectedLayers = document.selectedLayers
   let allArtBoards = selectedLayers.layers
 
   thisProjectNodes.map((node) => {
+    let thisNodeName = thisProject.projectJson.nodes[node].name
+    let currentArtboard = sketch.find(`[name="${thisNodeName}"]`)
+    cleanOld(thisNodeName)
 
-  let currentArtboard = sketch.find(`[name="${thisProject.projectJson.nodes[node].name}"]`)
-  let currentInfoPanelGroup = sketch.find(`[name="${thisProject.projectJson.nodes[node].name}_InfoPanel"]`)
-  console.log("thisis the current artboard found",currentArtboard,node,currentInfoPanelGroup,thisProject.projectJson.nodes[node].name,selectedLayers.layers)
-  // console.log("thisis the current artboard found",currentArtboard,thisProject.projectJson.nodes[node].name)
-  if (currentInfoPanelGroup.length >= 1) {
-    currentInfoPanelGroup[0].remove()
-  }
-  let width, height = ''
-  if (!thisProject.projectJson.nodes[node].size) {
-    width = thisProject.projectJson.nodes[node].position.width
-    height = thisProject.projectJson.nodes[node].position.height
-  }
-  else {
-    width = thisProject.projectJson.nodes[node].size.width
-    height = thisProject.projectJson.nodes[node].size.height
-  }
+    let width, height = ''
+    // if (!thisProject.projectJson.nodes[node].size) {
+    //   width = thisProject.projectJson.nodes[node].position.width
+    //   height = thisProject.projectJson.nodes[node].position.height
+    // }
+    // else {
+      width = thisProject.projectJson.nodes[node].size.width
+      height = thisProject.projectJson.nodes[node].size.height
+    // }
+    // console.log("Allports are:", allPorts);
 
-  let picWidth = thisProject.projectJson.nodes[node].picSize.width
-  let picHeight = thisProject.projectJson.nodes[node].picSize.height
-  let x = thisProject.projectJson.nodes[node].position.x
-  let y = thisProject.projectJson.nodes[node].position.y
-  let nodeName = thisProject.projectJson.nodes[node].name
-  let artBoardName = thisProject.projectJson.nodes[node].name
+    let picWidth = thisProject.projectJson.nodes[node].picSize.width
+    let picHeight = thisProject.projectJson.nodes[node].picSize.height
+    let x = thisProject.projectJson.nodes[node].position.x
+    let y = thisProject.projectJson.nodes[node].position.y
+    let nodeName = thisProject.projectJson.nodes[node].name
+    let artBoardName = thisProject.projectJson.nodes[node].name
 
-  let exportSlice = new Slice({
-    parent: currentArtboard[0],
-    frame:  { x: 0, y: 0, width: width, height: picHeight },
-    name: `${thisProject.projectJson.nodes[node].picture}`
+    let exportSlice = new Slice({
+      parent: currentArtboard[0],
+      frame:  { x: 0, y: 0, width: width, height: picHeight },
+      name: `${thisProject.projectJson.nodes[node].picture}`
+    })
+    let imagePath = `${projectsUrl}/projects/${thisProject.projectJson.nodes[node].path}`
+    if (imagePath === 'http://localhost:9023/projects/no_image.png') {
+      imagePath = "http://localhost:9023/no_image.png"
+    }
+
+    let imageurl_nsurl = NSURL.alloc().initWithString(imagePath);
+    let nsimage = NSImage.alloc().initByReferencingURL(imageurl_nsurl);
+    // console.log(imagePath);
+    let nodePicture = new ShapePath({
+      name: thisProject.projectJson.nodes[node].picture,
+      parent: currentArtboard[0],
+      frame: { x: 0, y: 0, width: picWidth, height: picHeight},
+      style: {
+      fills: [{
+        fill: 'Pattern',
+        pattern: {
+          patternType: Style.PatternFillType.Fit,
+          image: nsimage
+        }
+      }]
+    }
+    })
+
+
+
+    /*
+      The info area from flowy. create all the elements and add them at the end to a group
+    */
+    let infoPanelBgSquare = new ShapePath({
+      name: `${thisProject.projectJson.nodes[node].picture}_bg`,
+      parent: currentArtboard[0],
+      frame: { x: 0, y: picHeight, width: width, height: height-picHeight},
+      style: {
+      fills: [{
+        fill: '#FFFFFF',
+      }]
+    }
+    })
+    let nodeId = new ShapePath({
+      parent: currentArtboard[0],
+      name: `nodeId:${node}`,
+      frame: { x: 0, y: 0, width: 1, height: 1 },
+      style: { fills: ['#35E6C9']}
+    })
+
+    let infoPanelNodeName = new Text({
+      parent: currentArtboard[0],
+      name: `${nodeName}`,
+      text: `${nodeName}`,
+      frame: { x: 20, y: picHeight+10,width: width, height: perectage(20,height-picHeight)},
+        style: {
+          textColor: '#111',
+          fontSize: 20,
+          lineHeight: null,
+          paragraphSpacing:perectage(120,20),
+          aligenment: 'left'
+        },
+    })
+    let infoPanelNodeDescription = new Text({
+      parent: currentArtboard[0],
+      name: `${thisProject.projectJson.nodes[node].text}`,
+      text: `${thisProject.projectJson.nodes[node].text}`,
+      frame: { x: 20, y: picHeight+40, width: width, height: perectage(80,height-picHeight) },
+        style: {
+          textColor: '#333',
+          lineHeight: null,
+          paragraphSpacing:perectage(120,10),
+          fontSize: 10,
+        },
+    })
+    nodePicture.style.borders = [{enabled:false}]
+    infoPanelNodeName.style.borders = [{enabled:false}]
+    infoPanelNodeDescription.style.borders = [{enabled:false}]
+    currentArtboard[0].frame.height = height
+
+    let infoPanel = new Group({
+      name: `${thisProject.projectJson.nodes[node].name}_InfoPanel`,
+      parent: currentArtboard[0],
+      layers:[nodeId,exportSlice,infoPanelBgSquare,infoPanelNodeName,infoPanelNodeDescription,nodePicture],
+    })
+
+
+        let thisPorts = Object.keys(thisProject.projectJson.nodes[node].ports)
+        let inputPortGroup = new Group({
+          name: `inputs`,
+          parent: currentArtboard[0],
+          frame: {x: 0, y:-16,  widht: width, height: 32 },
+                  })
+        let allInputPorts = thisPorts.map(port => {
+          let x = thisProject.projectJson.nodes[node].ports[port].position.x;
+          let y = thisProject.projectJson.nodes[node].ports[port].position.y;
+          let type = thisProject.projectJson.nodes[node].ports[port].type;
+          let text = thisProject.projectJson.nodes[node].ports[port].properties.value;
+          let myPort, myPortInfo
+          if (type === "input") {
+            myPort = new ShapePath({
+             name: `${node}:${port}:${type}`,
+             parent: inputPortGroup,
+             frame: { x: x, y: 0, width: 32, height: 32 },
+             style: {
+             fills: [{
+               fill: '#FF00FF',
+             }]
+           }
+           })
+          myPortInfo = new Text({
+             parent: inputPortGroup,
+             name: `${node}:${port}:${type}_Info`,
+             frame: { x: x, y: 16, width: 32, height: 32 },
+             text: text,
+               style: {
+                 textColor: '#111',
+                 fontSize: 10,
+                 lineHeight: null,
+                 aligenment: 'center'
+               },
+           })
+         }
+           return
+        })
+
+        let outputPortGroup = new Group({
+          name: `outputs`,
+          parent: currentArtboard[0],
+          frame: {x: 0, y:height-16,  widht: width, height: 32 }
+        })
+        let allOutputPorts = thisPorts.map(port => {
+          let x = thisProject.projectJson.nodes[node].ports[port].position.x;
+          let y = thisProject.projectJson.nodes[node].ports[port].position.y;
+          let type = thisProject.projectJson.nodes[node].ports[port].type;
+          let text = thisProject.projectJson.nodes[node].ports[port].properties.value;
+          let myPort, myPortInfo
+
+                  if (type === "output") {
+                    myPort = new ShapePath({
+                     name: `${node}:${port}:${type}`,
+                     parent: outputPortGroup,
+                     frame: { x: width-x, y: height-16, width: 32, height: 32 },
+                     style: {
+                     fills: [{
+                       fill: '#FF00FF',
+                     }]
+                   }
+                   })
+                   myPortInfo = new Text({
+                      parent: outputPortGroup,
+                      name: `${node}:${port}:${type}_Info`,
+                      frame: { x: width-x, y: height-32, width: 32, height: 32 },
+                      text: text,
+                        style: {
+                          textColor: '#111',
+                          fontSize: 10,
+                          lineHeight: null,
+                          aligenment: 'center'
+                        }
+                    })
+                  }
+                  return
+            })
   })
-  let imagePath = `${projectsUrl}/projects/${thisProject.projectJson.nodes[node].path}`
-  if (imagePath === 'http://localhost:9023/projects/no_image.png') {
-    imagePath = "http://localhost:9023/no_image.png"
-  }
 
-  let imageurl_nsurl = NSURL.alloc().initWithString(imagePath);
-  let nsimage = NSImage.alloc().initByReferencingURL(imageurl_nsurl);
-  // console.log(imagePath);
-  let nodePicture = new ShapePath({
-    name: thisProject.projectJson.nodes[node].picture,
-    parent: currentArtboard[0],
-    frame: { x: 0, y: 0, width: picWidth, height: picHeight},
-    style: {
-    fills: [{
-      fill: 'Pattern',
-      pattern: {
-        patternType: Style.PatternFillType.Fit,
-        image: nsimage
+  thisProjectLinks.map(link => {
+      let thisLink = thisProject.projectJson.links[link]
+
+      let fromHotSpot
+      // console.log("see the link", link, thisLink)
+      let thisFromConnections = sketch.find(`[name="nodeId:${thisLink.from.nodeId}"]`)
+      let thisFromPort = sketch.find(`[name="${thisLink.from.nodeId}:${thisLink.from.portId}:output"]`)
+      // let thisFromPortDesc = sketch.find(`[name="${thisLink.from.nodeId}:${thisLink.from.portId}:output_Info"]`)
+      let fromConnectionArtboardName = thisFromConnections[0].parent.name.split('_')
+      fromConnectionArtboardName = fromConnectionArtboardName[0]
+      let currentFromArtboard = sketch.find(`[name="${fromConnectionArtboardName}"]`)
+
+      let thisToConnections = sketch.find(`[name="nodeId:${thisLink.to.nodeId}"]`)
+      let toConnectionArboardName = thisToConnections[0].parent.name.split('_')
+      toConnectionArboardName = toConnectionArboardName[0]
+      let currentToArtboard = sketch.find(`[name="${toConnectionArboardName}"]`)
+
+      if (thisFromPort.length >= 1 && currentToArtboard.length >= 1) {
+        console.log("so much connections we have",thisFromPort[0].frame.x,thisLink,thisFromPort[0].name, thisToConnections.length, currentToArtboard[0]);
+        new HotSpot({
+          parent: thisFromPort[0].parent,
+            name: thisFromPort[0].name,
+            flow: {
+              target: currentToArtboard[0],
+            },
+            frame: { x: 0 + thisFromPort[0].frame.x ,y:0,width:32,height:32}
+          })
       }
-    }]
-  }
-  })
-  /*
-    The info area from flowy. create all the elements and add them at the end to a group
-  */
-  let infoPanelBgSquare = new ShapePath({
-    name: `${thisProject.projectJson.nodes[node].picture}_bg`,
-    parent: currentArtboard[0],
-    frame: { x: 0, y: picHeight, width: width, height: height-picHeight},
-    style: {
-    fills: [{
-      fill: '#FFFFFF',
-    }]
-  }
-  })
-  let infoPanelNodeName = new Text({
-    parent: currentArtboard[0],
-    name: `${nodeName}`,
-    text: `${nodeName}`,
-    frame: { x: 20, y: picHeight+10,width: width, height: perectage(20,height-picHeight)},
-      style: {
-        textColor: '#111',
-        fontSize: 20,
-        lineHeight: null,
-        paragraphSpacing:perectage(120,20),
-        aligenment: 'left'
-      },
-  })
-  let infoPanelNodeDescription = new Text({
-    parent: currentArtboard[0],
-    name: `${thisProject.projectJson.nodes[node].text}`,
-    text: `${thisProject.projectJson.nodes[node].text}`,
-    frame: { x: 20, y: picHeight+40, width: width, height: perectage(80,height-picHeight) },
-      style: {
-        textColor: '#333',
-        lineHeight: null,
-        paragraphSpacing:perectage(120,10),
-        fontSize: 10,
-      },
-  })
-  nodePicture.style.borders = [{enabled:false}]
-  infoPanelNodeName.style.borders = [{enabled:false}]
-  infoPanelNodeDescription.style.borders = [{enabled:false}]
-  currentArtboard[0].frame.height = height
+      })
+      thisProjectLinks.map(link => {
+          let thisLink = thisProject.projectJson.links[link]
 
-  let infoPanel = new Group({
-    name: `${thisProject.projectJson.nodes[node].name}_InfoPanel`,
-    parent: currentArtboard[0],
-    layers:[exportSlice,infoPanelBgSquare,infoPanelNodeName,infoPanelNodeDescription,nodePicture],
-  })
-  // frame: { x: 0, y: 0, width: width, height: height}
+          let fromHotSpot
+          // console.log("see the link", link, thisLink)
+          let thisFromConnections = sketch.find(`[name="nodeId:${thisLink.from.nodeId}"]`)
+          let thisFromPort = sketch.find(`[name="${thisLink.from.nodeId}:${thisLink.from.portId}:output"]`)
+          // let thisFromPortDesc = sketch.find(`[name="${thisLink.from.nodeId}:${thisLink.from.portId}:output_Info"]`)
+          let fromConnectionArtboardName = thisFromConnections[0].parent.name.split('_')
+          fromConnectionArtboardName = fromConnectionArtboardName[0]
+          let currentFromArtboard = sketch.find(`[name="${fromConnectionArtboardName}"]`)
+
+          let thisToConnections = sketch.find(`[name="nodeId:${thisLink.to.nodeId}"]`)
+          let toConnectionArboardName = thisToConnections[0].parent.name.split('_')
+          toConnectionArboardName = toConnectionArboardName[0]
+          let currentToArtboard = sketch.find(`[name="${toConnectionArboardName}"]`)
+
+          let thisToPort = sketch.find(`[name="${thisLink.to.nodeId}:${thisLink.to.portId}:input"]`)
+          console.log(thisToPort.length, thisToPort);
+          if (thisToPort.length >= 1 && currentFromArtboard.length >= 1) {
+            new HotSpot({
+              parent: thisToPort[0].parent,
+                name: thisToPort[0].name,
+                flow: {
+                  target: currentFromArtboard[0],
+                },
+                frame: { x: thisToPort[0].frame.x ,y:0,width:32,height:32}
+              })
+          }
+        })
 
 
-  })
-  }
+
+  cb("done")
+}
 
 
 // we load the project from the backend
-function loadProject(project){
+function loadProject(project,cb){
   let thisProject = networkRequest([`${api}/loadProject/:${project}`])
   let thisProjectNodes = Object.keys(thisProject.projectJson.nodes)
   let thisProjectLinks = Object.keys(thisProject.projectJson.links)
-
+  // console.log("these are the project links",thisProjectLinks.map(link => {
+  //     return thisProject.projectJson.links[link]
+  // })
+  // )
   let allArtBoards = {}
+  let currentIdentifier = sketch.find(`[name="flowy-identifier:${project}"]`)
+  if (currentIdentifier.length >= 1) {
 
+    currentIdentifier[0].remove()
+  }
   // we create all nodes as artboards
   thisProjectNodes.map((node) => {
     // console.log(thisProject.projectJson.nodes[node])
@@ -228,6 +436,12 @@ function loadProject(project){
     let imageurl_nsurl = NSURL.alloc().initWithString(imagePath);
     let nsimage = NSImage.alloc().initByReferencingURL(imageurl_nsurl);
     // console.log(imagePath);
+    let nodeId = new ShapePath({
+      parent: allArtBoards[node],
+      name: `nodeId:${node}`,
+      frame: { x: 0, y: 0, width: 1, height: 1 },
+      style: { fills: ['#35E6C9']}
+    })
     let nodePicture = new ShapePath({
       name: thisProject.projectJson.nodes[node].picture,
       parent: allArtBoards[node],
@@ -284,7 +498,7 @@ function loadProject(project){
     let infoPanel = new Group({
       name: `${thisProject.projectJson.nodes[node].name}_InfoPanel`,
       parent: allArtBoards[node],
-      layers:[exportSlice,infoPanelBgSquare,infoPanelNodeDescription,infoPanelNodeName,nodePicture],
+      layers:[nodeId,exportSlice,infoPanelBgSquare,infoPanelNodeDescription,infoPanelNodeName,nodePicture],
     })
     // frame: { x: 0, y: 0, width: width, height: height}
 
@@ -293,6 +507,16 @@ function loadProject(project){
     infoPanelNodeDescription.style.borders = [{enabled:false}]
 
   })
+
+  thisProjectLinks.map(link => {
+      let thisLink = thisProject.projectJson.links[link]
+      console.log("see the link", link, thisLink)
+      let thisFromConnections = sketch.find(`[name="nodeId:${thisLink.from.nodeId}"]`)
+      let thisToConnections = sketch.find(`[name="nodeId:${thisLink.to.nodeId}"]`)
+      console.log("see if we have connections found", link, thisFromConnections, thisToConnections)
+  })
+
+  cb("done")
 }
 
 
@@ -394,5 +618,24 @@ if (!Object.keys) {
       return result;
     };
   }());
+}
+
+function parentOffsetInArtboard (layer) {
+  var offset = {x: 0, y: 0};
+  var parent = layer.parent;
+  while (parent.name && parent.type !== 'Artboard') {
+    offset.x += parent.frame.x;
+    offset.y += parent.frame.y;
+    parent = parent.parent;
+  }
+  return offset;
+}
+
+function positionInArtboard (layer, x, y) {
+  var parentOffset = parentOffsetInArtboard(layer);
+  var newFrame = new sketch.Rectangle(layer.frame);
+  newFrame.x = x - parentOffset.x;
+  newFrame.y = y - parentOffset.y;
+  layer.frame = newFrame;
 }
 };
