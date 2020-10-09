@@ -398,34 +398,33 @@ function loadProject(project,cb){
   // we create all nodes as artboards
   thisProjectNodes.map((node) => {
     // console.log(thisProject.projectJson.nodes[node])
-    let width, height = ''
-    if (!thisProject.projectJson.nodes[node].size) {
-      width = thisProject.projectJson.nodes[node].position.width
-      height = thisProject.projectJson.nodes[node].position.height
-    }
-    else {
-      width = thisProject.projectJson.nodes[node].size.width
-      height = thisProject.projectJson.nodes[node].size.height
-    }
+    let nodeWidth, nodeHeight = ''
+      nodeWidth = thisProject.projectJson.nodes[node].size.width
+      nodeHeight = thisProject.projectJson.nodes[node].size.height
+
     let picWidth = thisProject.projectJson.nodes[node].picSize.width
     let picHeight = thisProject.projectJson.nodes[node].picSize.height
     // console.log(thisProject.projectJson.nodes[node])
-    let x = thisProject.projectJson.nodes[node].position.x
-    let y = thisProject.projectJson.nodes[node].position.y
+    let nodePosX = thisProject.projectJson.nodes[node].position.x
+    let nodePosY = thisProject.projectJson.nodes[node].position.y
     let nodeName = thisProject.projectJson.nodes[node].name
     let artBoardName = thisProject.projectJson.nodes[node].name
     if (artBoardName.includes('_')) {
       artBoardName = artBoardName.replace(/_/g,' / ')
     }
-
+// b87f0364144ebee8c0f812e29bd9e054443b2e3894d08d083fac881ddcfc4fe2
     allArtBoards[node] = new Artboard({ parent: page,
-      frame: { x: x, y: y, width: width, height: height },
+      frame: { x: nodePosX, y: nodePosY, width: nodeWidth, height: nodeHeight },
       name: artBoardName
     })
-
+    let infoPanel = new Group({
+      name: `${thisProject.projectJson.nodes[node].name}_InfoPanel`,
+      frame:  { x: 0, y: 0, width: nodeWidth, height: nodeHeight },
+      parent: allArtBoards[node]
+    })
     let exportSlice = new Slice({
-      parent: allArtBoards[node],
-      frame:  { x: 0, y: 0, width: width, height: picHeight },
+      parent: infoPanel,
+      frame:  { x: 0, y: 0, width: nodeWidth, height: picHeight },
       name: `${thisProject.projectJson.nodes[node].picture}`
     })
     let imagePath = `${projectsUrl}/projects/${thisProject.projectJson.nodes[node].path}`
@@ -437,14 +436,14 @@ function loadProject(project,cb){
     let nsimage = NSImage.alloc().initByReferencingURL(imageurl_nsurl);
     // console.log(imagePath);
     let nodeId = new ShapePath({
-      parent: allArtBoards[node],
+      parent: infoPanel,
       name: `nodeId:${node}`,
       frame: { x: 0, y: 0, width: 1, height: 1 },
       style: { fills: ['#35E6C9']}
     })
     let nodePicture = new ShapePath({
       name: thisProject.projectJson.nodes[node].picture,
-      parent: allArtBoards[node],
+      parent: infoPanel,
       frame: { x: 0, y: 0, width: picWidth, height: picHeight},
       style: {
       fills: [{
@@ -462,8 +461,8 @@ function loadProject(project,cb){
     */
     let infoPanelBgSquare = new ShapePath({
       name: `${thisProject.projectJson.nodes[node].picture}_bg`,
-      parent: allArtBoards[node],
-      frame: { x: 0, y: picHeight, width: width, height: height-picHeight},
+      parent: infoPanel,
+      frame: { x: 0, y: picHeight, width: nodeWidth, height: nodeHeight-picHeight},
       style: {
       fills: [{
         fill: '#FFFFFF',
@@ -471,10 +470,10 @@ function loadProject(project,cb){
     }
     })
     let infoPanelNodeName = new Text({
-      parent: allArtBoards[node],
+      parent: infoPanel,
       name: `${nodeName}`,
       text: `${nodeName}`,
-      frame: { x: 20, y: picHeight+10,width: width, height: perectage(20,height-picHeight)},
+      frame: { x: 20, y: picHeight+10,width: nodeWidth, height: perectage(20,nodeHeight-picHeight)},
         style: {
           textColor: '#111',
           fontSize: 20,
@@ -484,10 +483,10 @@ function loadProject(project,cb){
         },
     })
     let infoPanelNodeDescription = new Text({
-      parent: allArtBoards[node],
+      parent: infoPanel,
       name: `${thisProject.projectJson.nodes[node].text}`,
       text: `${thisProject.projectJson.nodes[node].text}`,
-      frame: { x: 20, y: picHeight+40, width: width, height: perectage(80,height-picHeight) },
+      frame: { x: 20, y: picHeight+40, width: nodeWidth, height: perectage(80,nodeHeight-picHeight) },
         style: {
           textColor: '#333',
           lineHeight: null,
@@ -495,11 +494,7 @@ function loadProject(project,cb){
           fontSize: 10,
         },
     })
-    let infoPanel = new Group({
-      name: `${thisProject.projectJson.nodes[node].name}_InfoPanel`,
-      parent: allArtBoards[node],
-      layers:[nodeId,exportSlice,infoPanelBgSquare,infoPanelNodeDescription,infoPanelNodeName,nodePicture],
-    })
+    infoPanel.layers = [nodeId,exportSlice,infoPanelBgSquare,infoPanelNodeDescription,infoPanelNodeName,nodePicture]
     // frame: { x: 0, y: 0, width: width, height: height}
 
     infoPanelNodeName.style.borders = [{enabled:false}]
