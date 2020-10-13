@@ -94,6 +94,7 @@ var onRun = function(context) {
     if (currentInfoPanelGroup.length >= 1) {
       currentInfoPanelGroup[0].remove()
     }
+
   }
 
 
@@ -165,8 +166,8 @@ var onRun = function(context) {
         return ports
 
       },[])
-      console.log(allInputPorts);
-      console.log("add the inputPort Group", nodeName,"width",nodeWidth,"x:",nodePosX,"y:",nodePosY);
+      // console.log(allInputPorts);
+      // console.log("add the inputPort Group", nodeName,"width",nodeWidth,"x:",nodePosX,"y:",nodePosY);
       inputPortGroup.layers = allInputPorts
 
       let outputPortGroup = new Group({
@@ -185,7 +186,7 @@ var onRun = function(context) {
         let myPort, myPortInfo
 
         if (type === "output") {
-          console.log("output x",x);
+          // console.log("output x",x);
           myPort = new ShapePath({
             name: `${nodeId}:${port}:${type}`,
             parent: currentArtboard,
@@ -224,8 +225,8 @@ var onRun = function(context) {
         return ports
 
       },[])
-      console.log(allOutputPorts);
-      console.log("add the outputPort Group", nodeName,"width",nodeWidth,"x:",nodePosX,"y:",nodePosY);
+      // console.log(allOutputPorts);
+      // console.log("add the outputPort Group", nodeName,"width",nodeWidth,"x:",nodePosX,"y:",nodePosY);
       outputPortGroup.layers = allOutputPorts
       return
     }
@@ -236,15 +237,11 @@ var onRun = function(context) {
     let thisProjectLinks = thisProject.projectJson.links
     thisProjectLinkNames.map(link => {
       let thisLink = thisProjectLinks[link]
-
-      let fromHotSpot
-      console.log("From Artboard Name",artboards[thisLink.from.nodeId].name,"to Artboardname >",artboards[thisLink.to.nodeId].name);
-      // let thisFromConnections = sketch.find(`[name="nodeId:${thisLink.from.nodeId}"]`)
       let fromArtboard = artboards[thisLink.from.nodeId]
-      // console.log("see the link", link, thisLink)
+      let toArtboard = artboards[thisLink.to.nodeId]
       let fromArtboardlayers = fromArtboard.layers
-      let temp
-      let thisFromPort = {}
+      let temp, fromHotSpot
+      let thisFromPorts = {}
 
       let fromArtboardOutputs = fromArtboardlayers.filter(layer => {
           if (layer.name === 'outputs') {
@@ -253,90 +250,73 @@ var onRun = function(context) {
           }
       })
       if (fromArtboardOutputs.length >= 1) {
-        thisFromPort = fromArtboardOutputs.filter(port => {
-          // console.log("show me portname",port.name,port);
+        thisFromPorts = fromArtboardOutputs[0].layers.filter(port => {
               if(port.name === `${thisLink.from.nodeId}:${thisLink.from.portId}:output`){
                 console.log("show me portname",port.name);
                 return port
             }
         })
-        console.log(fromArtboardOutputs ,thisFromPort);
+      }
+      // console.log("after filter",thisFromPorts[0].name,thisFromPorts[0].parent.name,fromArtboardOutputs[0].parent.name);
+
+      // console.log(toArtboard,artboards[thisLink.to.nodeId].id);
+      if (thisFromPorts.length >= 1) {
+        // console.log("so much connections we have", thisFromPorts[0].frame.x, thisLink, thisFromPorts[0].name);
+        new HotSpot({
+          parent: thisFromPorts[0].parent,
+          name: thisFromPorts[0].name,
+          flow: {
+            target: toArtboard,
+          },
+          frame: {
+            x:  thisFromPorts[0].frame.x,
+            y: 8,
+            width: 24,
+            height: 24
+          }
+        })
       }
 
 
-      // let toPort = toArtboard.layers
-      // toPort.filter(layer => {
-      //     if (layer.name === 'inputs') {
-      //       return layer.layers.filter(port => {
-      //         // console.log(port.name === `${thisLink.to.nodeId}:${thisLink.to.portId}:input`);
-      //             if(port.name === `${thisLink.to.nodeId}:${thisLink.to.portId}:input`){
-      //               return port
-      //           // console.log("see port",port.name,`${thisLink.to.nodeId}:${thisLink.to.portId}:input`,port.name === `${thisLink.to.nodeId}:${thisLink.to.portId}:input`);
-      //           }
-      //       });
-      //     }
-      // })
-      // console.log("from Artboard",fromArtboard.name,"Port:",fromPort, "to Artbaord",toArtboard.name,"Port:",toPort);
-      // let thisFromPort = sketch.find(`[name="${thisLink.from.nodeId}:${thisLink.from.portId}:output"]`)
-      // // let thisFromPortDesc = sketch.find(`[name="${thisLink.from.nodeId}:${thisLink.from.portId}:output_Info"]`)
-      // let fromConnectionArtboardName = thisFromConnections[0].parent.name.split('_')
-      // fromConnectionArtboardName = fromConnectionArtboardName[0]
-      // let fromArtboard = artboards[thisLink.from.nodeId].name
+      let toArtboardlayers = toArtboard.layers
+      let temp2, toHotSpot
+      let thisToPorts = {}
 
-      let toArtboard = artboards[thisLink.to.nodeId].name
+      let toArtboardOutputs = toArtboardlayers.filter(layer => {
+          if (layer.name === 'inputs') {
+            temp2 = layer.layers
+            return temp2
+          }
+      })
+      if (toArtboardOutputs.length >= 1) {
+        thisToPorts = toArtboardOutputs[0].layers.filter(port => {
+              if(port.name === `${thisLink.to.nodeId}:${thisLink.to.portId}:input`){
+                console.log("show me portname",port.name);
+                return port
+            }
+        })
+      }
+      // console.log("after filter",thisToPorts[0].name,thisToPorts[0].parent.name,fromArtboardOutputs[0].parent.name);
 
-      // if (thisFromPort.length >= 1 && currentToArtboard.length >= 1) {
-      //   console.log("so much connections we have", thisFromPort[0].frame.x, thisLink, thisFromPort[0].name, thisToConnections.length, currentToArtboard[0]);
-      //   new HotSpot({
-      //     parent: thisFromPort[0].parent,
-      //     name: thisFromPort[0].name,
-      //     flow: {
-      //       target: currentToArtboard[0],
-      //     },
-      //     frame: {
-      //       x: 0 + thisFromPort[0].frame.x,
-      //       y: 0,
-      //       width: 32,
-      //       height: 32
-      //     }
-      //   })
-      // }
+      // console.log(toArtboard,artboards[thisLink.to.nodeId].id);
+      if (thisToPorts.length >= 1) {
+        // console.log("so much connections we have", thisToPorts[0].frame.x, thisLink, thisToPorts[0].name);
+        new HotSpot({
+          parent: thisToPorts[0].parent,
+          name: thisToPorts[0].name,
+          flow: {
+            target: fromArtboard,
+          },
+          frame: {
+            x:  thisToPorts[0].frame.x,
+            y: 0,
+            width: 24,
+            height: 24
+          }
+        })
+      }
     })
-    // thisProjectLinks.map(link => {
-    //   let thisLink = thisProject.projectJson.links[link]
-    //
-    //   let fromHotSpot
-    //   // console.log("see the link", link, thisLink)
-    //   let thisFromConnections = sketch.find(`[name="nodeId:${thisLink.from.nodeId}"]`)
-    //   let thisFromPort = sketch.find(`[name="${thisLink.from.nodeId}:${thisLink.from.portId}:output"]`)
-    //   // let thisFromPortDesc = sketch.find(`[name="${thisLink.from.nodeId}:${thisLink.from.portId}:output_Info"]`)
-    //   let fromConnectionArtboardName = thisFromConnections[0].parent.name.split('_')
-    //   fromConnectionArtboardName = fromConnectionArtboardName[0]
-    //   let currentFromArtboard = sketch.find(`[name="${fromConnectionArtboardName}"]`)
-    //
-    //   let thisToConnections = sketch.find(`[name="nodeId:${thisLink.to.nodeId}"]`)
-    //   let toConnectionArboardName = thisToConnections[0].parent.name.split('_')
-    //   toConnectionArboardName = toConnectionArboardName[0]
-    //   let currentToArtboard = sketch.find(`[name="${toConnectionArboardName}"]`)
-    //
-    //   let thisToPort = sketch.find(`[name="${thisLink.to.nodeId}:${thisLink.to.portId}:input"]`)
-    //   console.log(thisToPort.length, thisToPort);
-    //   if (thisToPort.length >= 1 && currentFromArtboard.length >= 1) {
-    //     new HotSpot({
-    //       parent: thisToPort[0].parent,
-    //       name: thisToPort[0].name,
-    //       flow: {
-    //         target: currentFromArtboard[0],
-    //       },
-    //       frame: {
-    //         x: thisToPort[0].frame.x,
-    //         y: 0,
-    //         width: 32,
-    //         height: 32
-    //       }
-    //     })
-    //   }
-    // })
+
   }
 
 
@@ -492,6 +472,7 @@ function loadProject(project, update, cb) {
   let thisProject = networkRequest([`${api}/loadProject/:${project}`])
   let currentIdentifier = sketch.find(`[name="flowy-identifier:${project}"]`)
   if (currentIdentifier.length >= 1) {
+    update = true
     // console.log('have at least one identifier that we remove now', currentIdentifier.length);
     currentIdentifier.map(identifier => identifier.remove())
   }
@@ -499,16 +480,19 @@ function loadProject(project, update, cb) {
   let thisProjectJson = thisProject.projectJson
   let thisProjectNodes = thisProjectJson.nodes
   let thisProjectNodeNames = Object.keys(thisProjectNodes);
+    let allArtBoards = {}
   if (update) {
     // console.log("we good an update");
     thisProjectNodeNames = Object.keys(thisProject.projectJson.nodes)
     thisProjectNodeNames.map((node) => {
       let thisNodeName = thisProject.projectJson.nodes[node].name
+      console.log('Cleanall',thisNodeName);
       cleanOld(thisNodeName)
+      allArtBoards[node] = sketch.find(`[name="${thisNodeName}"]`)
     })
   }
 
-  let allArtBoards = {}
+
 
   // we create all nodes as artboards
   thisProjectNodeNames.map((node) => {
@@ -523,19 +507,22 @@ function loadProject(project, update, cb) {
 
     let artBoardName = thisNode.name
     // if (artBoardName.includes('_')) {
-    artBoardName = artBoardName.replace(/_/g, ' / ')
+    // artBoardName = artBoardName.replace(/_/g, ' / ')
     // }
-
-    allArtBoards[node] = new Artboard({
-      parent: page,
-      frame: {
-        x: nodePosX,
-        y: nodePosY,
-        width: nodeWidth,
-        height: nodeHeight
-      },
-      name: artBoardName
-    })
+    // if (update) {
+    //   console.log("we have all artboards allready, is an update");
+    // }else {
+      allArtBoards[node] = new Artboard({
+        parent: page,
+        frame: {
+          x: nodePosX,
+          y: nodePosY,
+          width: nodeWidth,
+          height: nodeHeight
+        },
+        name: artBoardName
+      })
+    // }
     let thisArtboard = allArtBoards[node]
     console.log("we have create the artboards and do the conent now");
     makeFlowyContent(thisNode, thisArtboard)
@@ -544,7 +531,7 @@ function loadProject(project, update, cb) {
 
   })
   console.log("done with the artboards,contentent and connectors, try to make hotspots now");
-  makeHotSpotFromLinks(thisProject, allArtBoards,)
+  makeHotSpotFromLinks(thisProject, allArtBoards)
   console.log("all done, make the callback to end to process");
 
   cb("done")
