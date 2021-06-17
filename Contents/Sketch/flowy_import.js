@@ -4,6 +4,7 @@ var onRun = function(context) {
   const UI = require('sketch/ui')
   const Style = sketch.Style
   const Artboard = sketch.Artboard
+  const Shape = sketch.Shape
   const ShapePath = sketch.ShapePath
   const Text = sketch.Text
   const Image = sketch.Image
@@ -73,6 +74,8 @@ var onRun = function(context) {
   }
 
 
+
+
   function cleanOld(thisNodeName) {
     let currentInfoPanelGroup = sketch.find(`[name="${thisNodeName}_InfoPanel"]`)
     let currentOutputGroup = sketch.find(`[name="outputs"]`)
@@ -102,6 +105,10 @@ var onRun = function(context) {
 
 
   function makeConnectors(thisNode,currentArtboard,nodeId) {
+    const borders = [{ color: '#c0ffee',
+      fillType: Style.FillType.Color,
+      position: Style.BorderPosition.Inside
+    }]
       // console.log("we do the node", thisNode.name);
       let thisPortNames = Object.keys(thisNode.ports)
       let nodeWidth, nodeHeight = ''
@@ -138,8 +145,8 @@ var onRun = function(context) {
               height: 24
             },
             style: {
-              fill: '#FF00FF',
-              stroke: '#00FF00'
+              fills: ['#FF00FF'],
+              borders: borders
               }
             })
 
@@ -158,7 +165,7 @@ var onRun = function(context) {
               textColor: '#111',
               fontSize: 10,
               lineHeight: null,
-              aligenment: 'center'
+              alignment: 'center'
             },
           })
           ports.push(myPort,myPortInfo)
@@ -197,8 +204,8 @@ var onRun = function(context) {
               height: 24
             },
             style: {
-              fill: '#FF00FF',
-              stroke: '#00FF00'
+              fills: ['#FF00FF'],
+              borders: borders
               }
             })
 
@@ -217,7 +224,7 @@ var onRun = function(context) {
               textColor: '#111',
               fontSize: 10,
               lineHeight: null,
-              aligenment: 'center'
+              alignment: 'center'
             },
           })
           ports.push(myPort,myPortInfo)
@@ -322,7 +329,7 @@ var onRun = function(context) {
 
 
 
-  function makeFlowyContent(thisProjectNode, currentArtboard) {
+  function makeFlowyNodesContent(thisProjectNode, currentArtboard) {
 
     let nodeWidth = thisProjectNode.size.width
     let nodeHeight = thisProjectNode.size.height
@@ -431,7 +438,7 @@ var onRun = function(context) {
         fontSize: 20,
         lineHeight: null,
         paragraphSpacing: perectage(120, 20),
-        aligenment: 'left'
+        alignment: 'left'
       },
     })
     let infoPanelNodeDescription = new Text({
@@ -467,6 +474,109 @@ var onRun = function(context) {
     return
   }
 
+  function makeFlowyDecisionContent(thisProjectNode, currentArtboard) {
+
+    let nodeWidth = thisProjectNode.size.width
+    let nodeHeight = thisProjectNode.size.height
+
+    console.log(thisProjectNode.size)
+    let nodePosX = thisProjectNode.position.x
+    let nodePosY = thisProjectNode.position.y
+    let nodeName = thisProjectNode.name
+
+    let nodeId = new ShapePath({
+      // parent: infoPanel,
+      name: `nodeId:${nodeName}`,
+      frame: {
+        x: 0,
+        y: 0,
+        width: 1,
+        height: 1
+      },
+      style: {
+        fills: ['#35E6C9']
+      }
+    })
+
+
+    console.log(nodeWidth,nodeHeight, perectage(20, nodeHeight));
+    let infoPanelNodeName = new Text({
+      fixedWidth: true,
+
+      name: `${nodeName}`,
+      text: `${nodeName}`,
+      frame: {
+        x: 20,
+        y: 10,
+        width: nodeWidth-20,
+        height: perectage(20, nodeHeight)
+      },
+    })
+
+
+
+    let infoPanelNodeDescription = new Text({
+      fixedWidth: true,
+      // parent: infoPanel,
+      name: `${thisProjectNode.text}`,
+      text: `${thisProjectNode.text}`,
+      frame: {
+        x: 20,
+        y: 40,
+        width: nodeWidth-20,
+        height: perectage(80, nodeHeight)
+      },
+      style: {
+        textColor: '#333',
+        // lineHeight: 12,
+        paragraphSpacing: perectage(120, 10),
+        fontSize: 10,
+        borders: [{
+          enabled: false
+        }]
+      },
+    })
+
+    let diamondWidhtHeight = (Math.sqrt(2)*nodeWidth)/2
+    console.log(diamondWidhtHeight);
+
+    let decisionDiamond = new Rectangle(0, 0, diamondWidhtHeight/2, diamondWidhtHeight/2)
+    let decisionDiamondStyle = new sketch.Style()
+        decisionDiamondStyle.fills = ['#DDf']
+
+
+    let diamondWrapper = new ShapePath({frame: decisionDiamond, style:decisionDiamondStyle});
+        diamondWrapper.frame.width = diamondWidhtHeight/2
+        diamondWrapper.frame.height = diamondWidhtHeight/2
+        diamondWrapper.transform.rotation = 45
+        diamondWrapper.frame.x = 0
+        diamondWrapper.frame.y = 0
+
+    let headWrapper = new Shape(infoPanelNodeName);
+
+
+    let diamondLayers = [diamondWrapper, infoPanelNodeName, infoPanelNodeDescription, nodeId]
+    // infoPanelNodeName.adjustToFit()
+    // infoPanelNodeDescription.adjustToFit()
+    // infoPanelNodeName.frame.widht = nodeWidth-32
+    console.log(infoPanelNodeName);
+
+    let infoPanel = new Group({
+        layers: diamondLayers,
+        name: `${nodeName}_InfoPanel`,
+        frame: {
+          x: 0,
+          y: 32,
+          width: nodeWidth,
+          height: nodeHeight
+        },
+        parent: currentArtboard
+      })
+
+      infoPanel.adjustToFit()
+
+      return
+  }
 // we load the project from the backend
 function loadProject(project, update, cb) {
   let thisProject = networkRequest([`${api}/loadProject/:${project}`])
@@ -486,7 +596,7 @@ function loadProject(project, update, cb) {
     thisProjectNodeNames = Object.keys(thisProject.projectJson.nodes)
     thisProjectNodeNames.map((node) => {
       let thisNodeName = thisProject.projectJson.nodes[node].name
-      console.log('Cleanall',thisNodeName);
+    //  console.log('Cleanall',thisNodeName);
       cleanOld(thisNodeName)
       allArtBoards[node] = sketch.find(`[name="${thisNodeName}"]`)
     })
@@ -496,6 +606,7 @@ function loadProject(project, update, cb) {
 
   // we create all nodes as artboards
   thisProjectNodeNames.map((node) => {
+    // console.log(node,thisProjectNodes[node])
     let thisNode = thisProjectNodes[node]
     let nodeWidth, nodeHeight = ''
 
@@ -504,7 +615,7 @@ function loadProject(project, update, cb) {
 
     let nodePosX = thisNode.position.x
     let nodePosY = thisNode.position.y
-
+    let displayType = thisNode.displayType
     let artBoardName = thisNode.name
     // if (artBoardName.includes('_')) {
     // artBoardName = artBoardName.replace(/_/g, ' / ')
@@ -512,6 +623,7 @@ function loadProject(project, update, cb) {
     // if (update) {
     //   console.log("we have all artboards allready, is an update");
     // }else {
+    // console.log(nodePosX,nodePosY,nodeWidth,nodeHeight);
       allArtBoards[node] = new Artboard({
         parent: page,
         frame: {
@@ -524,8 +636,21 @@ function loadProject(project, update, cb) {
       })
     // }
     let thisArtboard = allArtBoards[node]
+
     console.log("we have create the artboards and do the conent now");
-    makeFlowyContent(thisNode, thisArtboard)
+    switch (displayType) {
+      case 'decision':
+          console.log("We have a ",displayType);
+          makeFlowyDecisionContent(thisNode, thisArtboard)
+        break;
+      case 'point':
+          console.log("We have a ",displayType);
+        break;
+      default:
+        console.log("We have default ",displayType);
+          makeFlowyNodesContent(thisNode, thisArtboard)
+    }
+
     console.log("the content is done, we try to make the connectors from the links now");
     makeConnectors(thisNode,thisArtboard, node)
 
@@ -611,7 +736,7 @@ if (!Object.keys) {
 }
 function perectage(input, max) {
   let temp = (max / 100) * input
-  console.log(temp)
+  // console.log(temp)
   return temp
 }
 // helper function parsing the answer from the api
@@ -645,15 +770,15 @@ function parentOffsetInArtboard (layer) {
 
 function positionInArtboard (layer, x, y) {
   var parentOffset = {offset:{ x:x, y:y}}
-  console.log(layer);
+  // console.log(layer);
   if (layer.parent != undefined) {
   parentOffset = parentOffsetInArtboard(layer);
   }
-  console.log("the parent offset",parentOffset);
+  // console.log("the parent offset",parentOffset);
   var newFrame = new sketch.Rectangle(layer.frame);
   newFrame.x = x - parentOffset.x;
   newFrame.y = y - parentOffset.y;
-  console.log("and a new frame with:",newFrame);
+  // console.log("and a new frame with:",newFrame);
   layer.frame = newFrame;
 }
 };
